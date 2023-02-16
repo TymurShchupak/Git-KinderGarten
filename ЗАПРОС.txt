@@ -1,0 +1,835 @@
+create or replace view employee_rating 
+as
+Select distinct employee2_0.lname_, employee2_0.fname_, fathername_, position_, status, birth_date,employee_age, kids_count, subject_count,
+dense_rank() OVER (order by kids_count desc) rank_kids,
+dense_rank() OVER (order by subject_count desc) rank_subjects,
+dense_rank() OVER (order by employee_age desc) rank_age
+from employee2_0 
+full outer join  kids_counting
+on kids_counting.employee_id = employee2_0.employee_id
+full outer join subject_count 
+on subject_count.employee_id = employee2_0.employee_id
+inner join employee_age 
+on employee_age.employee_id = employee2_0.employee_id
+where status = 1
+
+
+CREATE OR REPLACE VIEW group_info
+as
+select group_name,lname_,fname_,fathername_ ,type_, child2_0.fk_group_id, count(gender) as boys, big_groups.child_count - count(gender) as girls, 
+big_groups.child_count + count(gender) - count(gender) as overall
+from child2_0 inner join group2_0 on group2_0.group_id = child2_0.fk_group_id
+inner join employee2_0 on employee2_0.employee_id = group2_0.fk_employee_id
+inner join(
+SELECT
+  fk_group_id, 
+  COUNT(fk_group_id) as child_count
+FROM
+  child2_0
+GROUP BY
+  fk_group_id
+) as big_groups on big_groups.fk_group_id = child2_0.fk_group_id
+where gender = 'Хлопчик' 
+group by child2_0.fk_group_id, gender, big_groups.child_count, type_,lname_,fname_,fathername_, group_name
+
+
+
+
+
+
+CREATE OR REPLACE VIEW public.authinfo
+ AS
+ SELECT employee2_0.employee_id,
+    employee2_0.email,
+    '1't AS "Roles",
+    employee2_0.password_,
+    employee2_0.position_ AS type,
+    employee2_0.phone_num
+   FROM employee2_0
+  WHERE employee2_0.position_ = 'Адміністратор' AND employee2_0.status = 1
+UNION
+ SELECT employee2_0.employee_id,
+    employee2_0.email,
+    '2' AS "Roles",
+    employee2_0.password_,
+    employee2_0.position_ AS type,
+    employee2_0.phone_num
+   FROM employee2_0
+  WHERE employee2_0.position_ = 'Викладач' AND employee2_0.status = 1
+UNION
+ SELECT parent2_0.parent_id AS employee_id,
+    parent2_0.email,
+    '3' AS "Roles",
+    parent2_0.password_,
+    parent2_0.parent_type AS type,
+    parent2_0.phone_num
+   FROM parent2_0;
+
+
+
+
+   CREATE TABLE IF NOT EXISTS child_audit (
+ child_id BIGINT PRIMARY KEY NOT NULL,
+  child_lname VARCHAR(30) NOT NULL,
+  child_fname VARCHAR(30) NOT NULL,
+  child_fathername VARCHAR (30) NOT NULL,
+child_birth_date DATE NOT NULL,
+  receipt_date DATE NOT NULL,
+  release_date DATE NOT NULL,
+   avg_gen_mood numeric not null,
+	 avg_activity numeric not null,
+	   avg_nutrition numeric not null
+
+ )
+
+
+
+CREATE TABLE IF NOT EXISTS NEWS_TABLE (
+news_id SERIAL PRIMARY KEY NOT NULL,
+date_ date NOT NULL default current_date,
+topic VARCHAR(100) not null,
+text_ VARCHAR(2000) not null,
+	 CONSTRAINT topic_ check (char_length(topic)>=5),
+	 CONSTRAINT text_ check (char_length(text_)>=20)
+	
+ 
+)
+
+
+
+CREATE TABLE IF NOT EXISTS employee2_0 (
+employee_id SERIAL PRIMARY KEY NOT NULL,
+ lname_ VARCHAR(50) NOT NULL,
+ fname_ VARCHAR(50) NOT NULL,
+ fathername_ VARCHAR(50) NOT NULL,
+ adress VARCHAR(50) NOT NULL,
+ phone_num VARCHAR(20) NOT NULL UNIQUE,
+ birth_date date NOT NULL, 
+ hiring_date date NOT NULL, 
+ contract_expiration date NOT NULL,
+ status smallint NOT NULL DEFAULT 1, 
+ position_ VARCHAR(50) NOT NULL DEFAULT 'Викладач',
+ email VARCHAR(50) NOT NULL UNIQUE, 
+ password_ VARCHAR(250) NOT NULL
+
+     CONSTRAINT lname_length check (char_length(lname_)>=3),
+	CONSTRAINT fname_length check (char_length(fname_)>=3),
+	CONSTRAINT fathername_length check (char_length(fathername_)>=3),
+	CONSTRAINT status_restriction check (status >=0 and status <2),
+	CONSTRAINT email_restriction check (email similar to '([a-z0-9._%-]+)@[a-z0-9._%-]+\.[a-z]{2,4}'),
+     CONSTRAINT age_restrictions check (birth_date < current_timestamp - INTERVAL'18 YEAR' and birth_date > current_timestamp - INTERVAL'100 YEAR'),
+     CONSTRAINT phone_restrictions check (phone_num similar to '\+38\((050|063|067|093|096)\)+[0-9]{7}'),
+        CONSTRAINT password_lenght check (char_length(password_)>=8)
+)
+ 
+
+
+
+
+
+
+ INSERT INTO employee2_0(lname_,fname_,fathername_,position_,email,birth_date,status,contract_expiration,password_,adress,phone_num) 
+VALUES
+ ('Щупак','Тимур','Александрович','Administator','tymur.schupak@gmail.com','1997/05/31','1','2024/09/01','t20023105','Елисаветинская,2','+38(096)9260916'),
+ ('Вашневский','Евгений','Альбертович','Educator','evgeniy.vash@gmail.com','2000/06/23','1','2024/09/01','e20022106','Балковская,32','+38(050)6435782'),
+ ('Морозова','Мария','Владимировна','Educator','mariya.moroz@gmail.com','2001/11/25','1','2024/09/01','m20002603','Березовая,139','+38(063)0764523'),
+ ('Романова','София','Дмитриевна','Educator','romanov.sof@gmail.com','1984/02/20','1','2024/09/01','rom2038232','Преображенская,12','+38(050)0274826'),
+ ('Бородин','Мирон','Никитич','Educator','boroda.mi@gmail.com','1992/11/21','1','2024/09/01','boroda23121','Судостроительная,80','+38(096)7483946'),
+ ('Соболев','Георгий','Артёмович','Educator','sobolev.mi@gmail.com','1984/11/21','0','2020/09/01','sadda123124','Преображенская,70','+38(096)2483946'),
+ ('Дубинина','Виктория','Максимовна','Educator','dubinina.mi@gmail.com','1976/11/21','0','2015/09/01','asda1312412','Колонтаевская,80','+38(096)5683946')
+ 
+ 
+ 
+ 
+
+
+
+ 
+CREATE TABLE IF NOT EXISTS group2_0 (
+ group_id SERIAL PRIMARY KEY NOT NULL,
+  group_name VARCHAR(20) NOT NULL UNIQUE, 
+  type_ VARCHAR(20) NOT NULL, 
+  fk_employee_id INTEGER REFERENCES employee2_0(employee_id) on delete cascade on update cascade NOT NULL,
+	 CONSTRAINT type_restriction check (type_ similar to 'Молодша|Старша|Підготовча')
+ )
+ 
+
+
+
+  INSERT INTO group2_0(group_name,type_,fk_employee_id) 
+ VALUES 
+ ('Солнышко','Junior',2),
+ ('Улыбка','Senior',3),
+ ('Цветочек','Senior',4)
+
+
+
+ CREATE TABLE IF NOT EXISTS subject2_0 (
+ subject_id SMALLSERIAL PRIMARY KEY NOT NULL,
+ subject_name VARCHAR(30) NOT NULL,
+ fk_employee_id INTEGER REFERENCES employee2_0(employee_id) on delete no action on update cascade NOT NULL
+ )
+ 
+
+
+
+ INSERT INTO subject2_0(subject_name,fk_employee_id) 
+ VALUES
+ ('Рахування',2),
+ ('Малювання',3),
+ ('Читання',4),
+ ('Англійська',5),
+ ('Трудове навчання',2),
+ ('Фізкультура',2),
+ ('Музика',3)
+ 
+
+
+
+CREATE TABLE IF NOT EXISTS schedule2_0 (
+ day_week SMALLINT NOT NULL,
+ time_ VARCHAR(10) NOT NULL,
+ fk_subject_id INTEGER REFERENCES subject2_0(subject_id) on delete no action on update cascade NOT NULL,
+ fk_group_id INTEGER REFERENCES group2_0(group_id) on delete no action on update cascade NOT NULL,
+    schedule_id SERIAL PRIMARY KEY NOT NULL,
+	 CONSTRAINT day_week_restriction check (day_week > 0 and day_week < 6 )
+ )
+
+
+
+ INSERT INTO schedule2_0(day_week, time_,fk_subject_id, fk_group_id)
+VALUES
+(1,'09:00',1,1),
+    (1,'11:00',2,1),
+    (2,'09:00',3,1),
+    (2,'11:00',1,1),
+    (3,'09:00',1,1),
+    (3,'11:00',2,1),
+    (4,'09:00',3,1),
+    (4,'11:00',2,1),
+    (5,'09:00',1,1),
+    (5,'11:00',2,1),
+    (1,'09:00',3,2),
+    (1,'11:00',4,2),
+    (2,'09:00',1,2),
+    (2,'11:00',2,2),
+    (3,'09:00',3,2),
+    (3,'11:00',4,2),
+    (4,'09:00',2,2),
+    (4,'11:00',1,2),
+    (5,'09:00',3,2),
+    (5,'11:00',4,2)
+
+
+   CREATE TABLE IF NOT EXISTS child2_0 (
+ child_id BIGSERIAL PRIMARY KEY NOT NULL,
+  child_lname VARCHAR(30) NOT NULL,
+  child_fname VARCHAR(30) NOT NULL,
+  child_fathername VARCHAR (30) NOT NULL,
+  child_birth_date DATE NOT NULL,
+  receipt_date DATE NOT NULL,
+  release_date DATE NOT NULL,
+  child_adress VARCHAR(50) NOT NULL,
+  medical_comment VARCHAR(350) NOT NULL,
+  gender VARCHAR(10) NOT NULL,
+  fk_group_id INTEGER REFERENCES group2_0(group_id) on delete no action on update cascade NOT NULL,
+    CONSTRAINT child_fname check (char_length(child_fname)>=3),
+	 CONSTRAINT child_lname check (char_length(child_lname)>=3),
+	 CONSTRAINT child_fathername check (char_length(child_fathername)>=3),
+  CONSTRAINT age_restrictions check (child_birth_date > current_timestamp - INTERVAL'6 YEAR'),
+  CONSTRAINT release_restrictions check (release_date > receipt_date),
+  CONSTRAINT receipt_restrictions check (receipt_date > child_birth_date + INTERVAL'2 YEAR'),
+	 CONSTRAINT gender_restriction check (gender similar to 'Хлопчик|Дівчинка')
+ )
+ 
+
+
+
+
+
+
+INSERT INTO child2_0(child_lname,child_fname, child_fathername,receipt_date,child_birth_date,child_adress,medical_comment,release_date,gender,fk_group_id)
+VALUES
+
+('Соколів', 'Ярослав', 'Артемович', '2020/09/05', '2018/03/17', 'Генуєська 2б', 'Повністю здоровий', '2024/06/05', 'Хлопчик' ,2),
+    ('Кожевнікова', 'Віра', 'Сергіївна','2020/09/05','2018/02/28','Прохорова,75','Алергія на картоплю та сир','2024/06/05' ,'Дівчинка',2),
+    ('Марків', 'Дмитро', 'Данилович', '2020/09/05', '2018/05/21', 'Вероницька,21', 'Повністю здоровий', '2024/06/05', 'Хлопчик', 2),
+    ('Жукова', 'Вероніка', 'Михайлівна','2020/09/05','2018/06/23','Героїв Сталінграда,12','Повністю здоровий','2024/06/05','Дівчинка',2),
+    ('Зимін', 'Макар', 'Михайлович','2020/09/05','2018/07/06','Героїв Києва,2','Повністю здоровий','2024/06/05','Хлопчик',2),
+    ('Тихонова', 'Марія', 'Тимофіївна', '2020/09/05', '2018/06/23', 'Рішельєвська,37', 'Астматик', '2024/06/05', 'Дівчинка' ,2),
+    ('Корольов', 'Адам', 'Георгійович','2020/09/05','2018/01/06','Колонтаєвська,88','Повністю здоровий','2024/06/05','Хлопчик', 2),
+    ('Зикова', 'Маргарита', 'Львівна','2020/09/05','2018/02/23','Василя Стуса,46','Повністю здоровий','2024/06/05','Дівчинка',2),
+    ('Рудаков', 'Григорій', 'Артемович', '2020/09/05', '2018/07/22', 'Колонтаєвська, 48', 'Повністю здоровий', '2024/06/05', 'Хлопчик', 2),
+    ('Мінаєва', 'Марія', 'Семенівна','2020/09/05','2018/5/12','Шкільна,23','Косоокість','2024/06/05','Дівчинка' ,2),
+    ('Астахов', 'Антон', 'Костянтинович','2020/09/05','2018/07/22','Гоголівська,18','Повністю здоровий','2024/06/05','Хлопчик', 2),
+    ('Карпова', 'Антоніна', 'Даніїлівна','2020/09/05','2018/05/12','Заводська,47','Повністю здоровий','2024/06/05','Дівчинка', 2),
+    ('Власов', 'Антон', 'Данилович','2020/09/05','2018/04/22','Гоголівська,43','Повністю здоровий','2024/06/05','Хлопчик', 2),
+    ('Бєляєва', 'Антоніна', 'Максімівна','2020/09/15','2018/05/12','Заводська,17','Алергія на кішок','2024/06/05','Дівчинка',2),
+    ('Мухін', 'Захар', 'Макарович','2020/09/05','2018/04/22','Колонтаєвська,18','Повністю здоровий','2024/06/05','Хлопчик', 2),
+    ('Родіонова', 'Анна', 'Марківна','2020/09/05','2018/02/23','Василя Стуса,26','Повністю здоровий','2024/06/05','Дівчинка',2),
+    ('Федотів', 'Степан', 'Маркович','2020/09/05','2018/02/22','Колонтаєвська,28','Алергія на пил','2024/06/05','Хлопчик',2),
+    ('Осипова', 'Арина', 'Євгенівна', '2020/09/12', '2018/05/12', 'Заводська,47', 'Повністю здоровий', '2024/06/05', 'Дівчинка', 2),
+    ('Мартинова', 'Софія', 'Денисівна', '2022/09/05', '2020/05/12','Автострадна,13','Повністю здоровий','2026/06/05','Дівчинка', 1),
+    ('Власов', 'Макар', 'Микитич','2022/09/05','2020/01/22','Гоголівська,48','Повністю здоровий','2026/06/05','Хлопчик', 1),
+    ('Гончарова', 'Вікторія', 'Матвіївна','2022/09/05','2020/03/12','Шосейна,88','Повністю здоровий','2026/06/05','Дівчинка', 1),
+    ('Костянтинів', 'Андрій', 'Максимович','2022/09/05','2020/08/02','Заводська,18','Повністю здоровий','2026/06/05','Хлопчик', 1),
+    ('Бєляєва', 'Олександра', 'Сергіївна', '2022/09/05', '2020/07/14', 'Метритопольська, 123', 'Асматик', '2026/06/05', 'Дівчинка' ,1),
+    ('Савін', 'Арсеній', 'Валерійович','2022/09/05','2020/03/22','Трамвайна,182','Повністю здоровий','2026/06/05','Хлопчик', 1),
+    ('Леонова', 'Вероніка', 'Святославівна','2022/09/05','2020/05/18','Золотодолинська,14','Повністю здоровий','2026/06/05','Дівчинка', 1),
+    ('Прокофєв', 'Роман', 'Іванович','2022/09/05','2020/04/03','Спортивна,12','Повністю здоровий','2026/06/05','Хлопчик', 1),
+    ('Герасимова', 'Анна', 'Костянтинівна','2022/09/05','2020/02/08','Окружна,144','Повністю здоровий','2026/06/05','Дівчинка', 1),
+    ('Прокофєв', 'Діма', 'Костянтинович', '2022/09/05', '2020/04/03','Спортивна,24','Алергія на лактозу','2026/06/05','Хлопчик',1),
+    ('Карпова', 'Аліса', 'Степанівна','2022/09/05','2020/03/12','Шосейна,18','Повністю здоровий','2026/06/05','Дівчинка', 1),
+    ('Фомічов', 'Сергій', 'Артурович','2022/09/05','2020/06/02','Заводська,28','Повністю здоровий','2026/06/05','Хлопчик', 1),
+    ('Макарова', 'Даря', 'Нікітична','2022/09/05','2020/05/28','Золотодолинська,4','Повністю здоровий','2026/06/05','Дівчинка', 1),
+    ('Афанасьєва', 'Анастасія', 'Дмитриївна', '2022/09/05', '2020/05/18', 'Золотодолинська,124', 'Алергія на яблуко та цитруси', '2026/06/05' ,'Дівчинка',1),
+    ('Сальников', 'Степан', 'Романович','2022/09/05','2020/06/02','Польова,22','Повністю здоровий','2026/06/05','Хлопчик', 1),
+    ('Бочарова', 'Єва', 'Матвіївна', '2022/09/05', '2020/07/14', 'Метритопольська,46', 'Асматик', '2026/06/05', 'Дівчинка' ,1),
+    ('Герасимова', 'Анна', 'Костянтинівна','2022/09/05','2020/02/08','Окружна,144','Повністю здоровий','2026/06/05','Дівчинка', 3),
+    ('Сальников', 'Степан', 'Романович', '2022/09/05', '2020/06/02', 'Польова, 22', 'Алергія на молоко і сир', '2026/06/05' , 'Хлопчик', 3),
+    ('Бочарова', 'Єва', 'Матвіївна', '2022/09/05', '2020/07/14', 'Метритопольська,46', 'Асматик', '2026/06/05', 'Дівчинка' ,3),
+    ('Морозова', 'Єва', 'Григорівна','2020/09/05','2018/01/06','Метеоритна,12','Асматик','2026/06/05','Дівчинка' ,2)
+
+
+	
+
+CREATE TABLE IF NOT EXISTS parent2_0 (
+parent_id BIGSERIAL PRIMARY KEY NOT NULL,
+	lname_ VARCHAR(30) NOT NULL,
+	fname_ VARCHAR(30) NOT NULL,
+	fathername_ VARCHAR(30) NOT NULL,
+	birth_date DATE NOT NULL,
+	parent_type VARCHAR(20) NOT NULL,
+	adress VARCHAR(50) NOT NULL,
+	work_place VARCHAR(100) NOT NULL, 
+	phone_num VARCHAR(20) NOT NULL,
+	email VARCHAR(50) NOT NULL, 
+	password_ VARCHAR(250) NOT NULL
+	
+	
+CONSTRAINT lname_length check (char_length(lname_)>=3),
+CONSTRAINT fname_length check (char_length(fname_)>=3),	
+CONSTRAINT fathername_length check (char_length(fathername_)>=3),	
+CONSTRAINT email_restriction check (email similar to '([a-z0-9._%-]+)@[a-z0-9._%-]+\.[a-z]{2,4}'),
+CONSTRAINT parent_type_restriction check (parent_type similar to 'Батько|Мати|Бабуся|Дідусь|Опікун|Соціальний робітник'),
+CONSTRAINT phone_restrictions check (phone_num similar to '\+38\((050|063|067|093|096)\)+[0-9]{7}'),
+CONSTRAINT password_lenght check (char_length(password_)>=8),
+CONSTRAINT age_restrictions check (birth_date < (current_timestamp - INTERVAL'18 YEAR') and birth_date > (current_timestamp - INTERVAL'100 YEAR'))
+)
+
+
+INSERT INTO parent2_0(phone_num,birth_date,lname_,fname_,fathername,email,parent_type,password_,adress,work_place) 
+VALUES
+('+38(096)1217552','1989/06/04','Соколов','Артем','Степанович','stepan.sc@gmail.com','Father','st19890604','Имени Морозовой,5','Софиевская,4/Кассир'),
+('+38(050)1348649','1992/02/25','Соколова','Виктория','Андреевна','victory.ds@gmail.com','Mother','vi19920225','Имени Морозовой,5','Михайловская,6/Инженер'),
+('+38(093)7649247','1957/12/24','Кожевников','Александр','Эдуартович','alexa.dr@gmail.com','Father','ale19571224','Торговая,24','Торговая,50/Строитель'),
+('+38(067)2749142','1993/07/23','Veronika','veron.ga@gmail.com','Mother','ver19930723','Prospect Svobody,23','Torhobaya,30/Teacher'),
+('+38(093)2648593','1992/10/25','Dmitriy','dmitri.dsa@gmail.com','Father','dm19921025','Koroleva,5','Glushko,29/2/Zoo Worker'),
+('+38(050)2385674','1974/11/20','Serhey','serhey.gd@gmail.com','GrandFather','serh19741120','8-ya liniya,7','Semena Paliya,47/Designer'),
+('+38(067)2574956','1987/10/15','Oleg','olegs.se@gmail.com','Father','oleg19871015','Zhemchujnaya,8','Dacha Kovalevskogo,127/Psychologist'),
+('+38(093)2649674','1995/01/02','Stanislav','stanis.sae@gmail.com','SocialWorker','stan19950102','Berezova,32','Ivanova,2/SocialWorker')	
+ 
+ 
+ 
+ CREATE TABLE IF NOT EXISTS family2_0 ( 
+ fk_parent_id INTEGER REFERENCES parent2_0(parent_id) on delete cascade NOT NULL,
+ fk_child_id INTEGER REFERENCES child2_0(child_id) on delete cascade NOT NULL,
+ family_id SERIAL PRIMARY KEY NOT NULL,
+	 unique(fk_parent_id,fk_child_id)
+ );
+  
+  INSERT INTO family2_0(fk_parent_id,fk_child_id)
+  VALUES
+  (1,1),
+  (2,1),
+  (3,2);
+  
+  
+CREATE TABLE IF NOT EXISTS dairy2_0 (
+	 dairy_num BIGSERIAL PRIMARY KEY NOT NULL,
+     fk_child_id INTEGER REFERENCES child2_0(child_id) on delete cascade on update cascade NOT NULL,
+	 date_ DATE NOT NULL default current_date,
+	 nutrition smallint NOT NULL, 
+	 activity smallint NOT NULL, 
+	 gen_mood smallint NOT NULL,
+	 CONSTRAINT nutrition_restriction check (nutrition > 0 and nutrition < 6),
+	 Constraint activity_restriction check (activity > 0 and activity < 6),
+	 CONSTRAINT gen_mood_restriction check (gen_mood > 0 and gen_mood <6)
+ )
+  
+	
+  (2,'5','5','2','2022/04/29'),
+  (2,'4','3','5','2022/04/30'),
+  (2,'4','2','5','2022/05/01'),
+  (2,'5','5','4','2022/05/02'),
+  (3,'4','2','5'),
+  (4,'1','1','4'),
+  (5,'2','4','2'),
+  (6,'3','5','1')
+
+
+ЛР № 3 (простые запросы)
+
+1.      Получить полную информацию о родителях указанного ребенка.
+
+ SELECT parent2_0.parent_id, parent2_0.phone_num, parent2_0.lname_, parent2_0.fname_, parent2_0.fathername, parent2_0.email,parent2_0.parent_type, parent2_0.password_ , parent2_0.adress, parent2_0.work_place   FROM parent2_0 
+inner join family2_0 
+on parent2_0.parent_id = family2_0.fk_parent_id
+inner join child2_0 
+on child2_0.child_id = family2_0.fk_child_id
+where child_id = 1 
+
+
+2.  Подсчитать количество детей, занимающихся каждым видом деятельности (предметом).
+
+
+Select subject2_0.subject_name,  count(distinct child2_0.child_id)  from child2_0 
+inner join group2_0
+on child2_0.fk_group_id = group2_0.group_id
+inner join schedule2_0 
+on group2_0.group_id = schedule2_0.fk_group_id
+inner join subject2_0
+on subject2_0.subject_id = schedule2_0.fk_subject_id 
+group by subject_name 
+
+
+
+3.Получить список детей, подконтрольных воспитателю с указанным ФИО.
+
+Первый управляющий группой
+
+Select DISTINCT child2_0.child_id, child2_0.child_lname, child2_0.child_fname, child2_0.child_fathername, child2_0. receipt_date, child2_0.child_birth_date, child2_0.child_adress, child2_0. medical_comment, child2_0.release_date, child2_0.gender, child2_0.fk_group_id FROM child2_0 
+inner join group2_0
+on child2_0.fk_group_id = group2_0.group_id
+inner join employee2_0
+on group2_0.fk_employee_id = employee2_0.employee_id
+where lname_ = ('Вашневский') and fname_ = ('Евгений') and fathername_ = ('Альбертович')
+
+Второй управляющий группой
+
+Select DISTINCT * FROM child2_0 
+inner join group2_0
+on child2_0.fk_group_id = group2_0.group_id
+inner join employee2_0
+on group2_0.fk_employee_id = employee2_0.employee_id
+where lname_ = ('Морозова') and fname_ = ('Мария') and fathername_ = ('Владимировна')
+
+4. Получить усредненную информацию о состоянии указанного ребенка за прошлую неделю.
+
+SELECT avg(gen_mood)::numeric(10,2) as Общее_настроение , avg(activity)::numeric(10,2) as Активности, avg(Nutrition)::numeric(10,2) as Питание FROM dairy2_0 where date(date_) <= current_date and date(date_) >= current_date - interval '7 day' and fk_child_id =1
+
+
+5.  Для каждой группы с количеством детей, большим 15, подсчитать количество девочек и мальчиков.
+
+select child2_0.fk_group_id, count(gender) as boys, big_groups.child_count - count(gender) as girls
+from child2_0 inner join (
+SELECT
+  fk_group_id,
+  COUNT (fk_group_id) as child_count
+FROM
+  child2_0
+GROUP BY
+  fk_group_id
+HAVING
+  COUNT (fk_group_id) >= 15
+) as big_groups on big_groups.fk_group_id = child2_0.fk_group_id
+where gender = 'Хлопчик'
+group by child2_0.fk_group_id, gender, big_groups.child_count
+
+
+6. Получить информацию о детях-однофамильцах, которые «учатся» в разных группах.
+
+Беляева, Карпова, Власов. Прокофьевы в одной группе
+
+select child2_0.child_id, child2_0.child_lname, child2_0.child_fname, child2_0.child_fathername , child2_0.fk_group_id from child2_0
+inner join (
+  select child_id, child_lname, child_fname, fk_group_id
+  from child2_0
+) as same_name on same_name.child_lname = child2_0.child_lname and same_name.fk_group_id <> child2_0.fk_group_id
+order by child_lname, fk_group_id;
+
+7.      Подсчитать отдельно количество девочек и количество мальчиков, занимающихся указанным видом деятельности (предметом).
+
+Считание 16 мальчиков и 18 девочек
+Рисование 16 мальчиков и 18 девочек
+Читание 16 мальчиков и 18 девочек
+Анлийский 9 мальчиков и 9 девочек 
+
+
+Select subject2_0.subject_name,  count(distinct child2_0.child_id)  from child2_0 
+inner join group2_0
+on child2_0.fk_group_id = group2_0.group_id
+inner join schedule2_0 
+on group2_0.group_id = schedule2_0.fk_group_id
+inner join subject2_0
+on subject2_0.subject_id = schedule2_0.fk_subject_id 
+where subject_id = 4 and (gender = ('Female') or gender = ('Male'))
+group by subject_name, gender
+
+
+
+8.      Получить информацию о воспитателях, которые работали в детском саду 5 лет назад, а сейчас уволены.
+
+
+select * from employee2_0 where status = 0 and contract_expiration <= current_date - interval '5 YEAR'
+
+
+9. Получить информацию о детях-аллергиках (с указанием группы и ФИО ответственного воспитателя), принятых в детский сад в текущем году.
+
+
+
+Select child2_0.child_lname, child2_0.child_fname, child2_0.child_fathername,child2_0.receipt_date, child2_0.medical_comment, child2_0.fk_group_id, employee2_0.lname_, employee2_0.fname_, employee2_0.fathername_ from child2_0
+inner join group2_0
+on child2_0.fk_group_id = group2_0.group_id
+inner join employee2_0
+on group2_0.fk_employee_id = employee2_0.employee_id where medical_comment like 'Аллергия%' and receipt_date > date'2022/01/01'
+
+
+10.  Получить информацию о старших и подготовительных группах, в которых «учится» от 10 до 20 детей.
+
+
+
+select group2_0.group_id, group2_0.group_name,group2_0.type_, group2_0.fk_employee_id
+from child2_0 inner join (
+SELECT
+  fk_group_id,
+  COUNT (fk_group_id) as child_count
+FROM
+  child2_0
+GROUP BY
+  fk_group_id
+HAVING
+  COUNT (fk_group_id) >= 10 and count(fk_group_id) <= 20
+) as big_groups on big_groups.fk_group_id = child2_0.fk_group_id
+inner join group2_0
+on child2_0.fk_group_id = group2_0.group_id
+inner join employee2_0 
+on group2_0.fk_employee_id = employee2_0.employee_id
+where type_ = ('Junior') or type_ = ('Senior')
+
+
+
+ЛР № 4 (подзапросы, представления и аналитические функции)
+
+1.        Создать представление для отображения среднего количества детей в каждой группе.
+
+
+Create VIEW Count_kids_in_types_of_groups as
+select type_, count(child_id)from child2_0 
+inner join group2_0
+on child2_0.fk_group_id = group2_0.group_id
+where type_ = ('Junior') or type_ = ('Senior')
+group by type_
+
+
+
+--Представления для подсчета детей в группах
+Create or replace VIEW kids_counting as
+Select employee_id, lname_, type_, child2_0.fk_group_id, count(child2_0.child_id) as kids_count  from child2_0 
+inner join group2_0
+on child2_0.fk_group_id = group2_0.group_id
+full outer join employee2_0
+on employee2_0.employee_id = group2_0.fk_employee_id
+group by employee_id, lname_, fk_group_id, type_
+
+
+
+
+
+with 
+groups_ as (
+  select count(*) as gr_count, group2_0.type_
+  from group2_0
+  group by group2_0.type_
+)
+select 
+group2_0.type_, 
+count(*) as total_child,
+groups_.gr_count as such_groups,
+count(*) / groups_.gr_count as avg_child_per_group_type
+from child2_0
+inner join group2_0 on group2_0.group_id = child2_0.fk_group_id
+inner join groups_ on group2_0.type_ = groups_.type_
+group by group2_0.type_, groups_.gr_count;
+
+
+
+2.        Получить информацию о самом старшем ребенке в детском саду (или детях, если таковых несколько).
+
+
+select * from child2_0 where child_birth_date = (select min(child_birth_date) from child2_0)
+
+
+
+3.        Получить (в одном запросе) список работающих в детском саду воспитателей с указанием их рейтинга (места) при ранжировании по возрасту, количеству подконтрольных им детей, количеству предметов, которые они ведут.
+
+--Получить (в одном запросе) список работающих в детском саду воспитателей с указанием их рейтинга (места) при ранжировании по возрасту, количеству подконтрольных им детей, количеству предметов, которые они ведут.
+Select distinct employee2_0.lname_, employee2_0.fname_, fathername_, position_, status, birth_date,employee_age, kids_count, subject_count,
+dense_rank() OVER (order by kids_count desc) rank_kids,
+dense_rank() OVER (order by subject_count desc) rank_subjects,
+dense_rank() OVER (order by employee_age desc) rank_age
+from employee2_0 
+full outer join  kids_counting
+on kids_counting.employee_id = employee2_0.employee_id
+full outer join subject_count 
+on subject_count.employee_id = employee2_0.employee_id
+inner join employee_age 
+on employee_age.employee_id = employee2_0.employee_id
+
+
+
+
+
+
+--Представления для подсчета детей в группах
+Create or replace VIEW kids_counting as
+Select employee_id, lname_, type_, child2_0.fk_group_id, count(child2_0.child_id) as kids_count  from child2_0 
+inner join group2_0
+on child2_0.fk_group_id = group2_0.group_id
+full outer join employee2_0
+on employee2_0.employee_id = group2_0.fk_employee_id
+group by employee_id, lname_, fk_group_id, type_
+Для счета колва предметов
+(
+Create or replace view Subject_count as
+select employee_id, count(subject_id) as subject_count from subject2_0
+full outer join employee2_0 on
+employee2_0.employee_id = subject2_0.fk_employee_id
+group by employee_id
+)
+Для счета возраста
+(
+create view Employee_age as
+select employee_id,fname_, date_part('year',age(birth_date)) as employee_age from employee2_0
+)
+
+
+ЛР № 5 (триггеры и хранимые процедуры)
+
+1.        Создать триггер, который при удалении родителя проверяет, является ли этот родитель для его ребенка единственным. Если нет, 
+то просто удалить родителя из БД. В противном случае назначить опекуном ребенка социального работника.
+CREATE or REPLACE FUNCTION check_family() returns trigger 
+AS $$
+DECLARE kid_id_check INTEGER;
+DECLARE parent_count INTEGER;
+BEGIN
+Select child_id from parent2_0 
+inner join family2_0 on family2_0.fk_parent_id = parent2_0.parent_id
+inner join child2_0 on child2_0.child_id = family2_0.fk_child_id
+where old.parent_id = parent_id
+into kid_id_check;
+SELECT count(parent_id) from parent2_0 
+inner join family2_0 on family2_0.fk_parent_id = parent2_0.parent_id
+inner join child2_0 on child2_0.child_id = family2_0.fk_child_id
+where child_id = kid_id_check
+into parent_count;
+if
+parent_count = 1
+then
+update parent2_0
+set parent_id = old.parent_id, phone_num = '+38(096)4236456',birth_date='1989/06/04',lname_='Колаковский',fname_='Артем', fathername = 'Альбертович',email = 'artem.sc@gmail.com',parent_type = 'SocialWorker',password_ ='st1989012' ,adress = 'Генуеская,5',work_place = 'Софиевская,4/Социальный работник'
+where parent_id = old.parent_id;
+return new;	
+else
+return old;
+end if;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER check_family_trigger
+BEFORE UPDATE OR DELETE ON parent2_0
+FOR EACH ROW 
+WHEN (pg_trigger_depth() < 1)
+EXECUTE PROCEDURE check_family();
+
+
+DROP FUNCTION  check_family() cascade
+
+
+delete from parent2_0 where parent_id = 2
+2.        Создать функцию для отображения расписания для указанной группы на завтра (идентификатор группы передать в качестве параметра функции) или сообщения о том, что завтра выходной.
+
+CREATE or REPLACE FUNCTION check_schedule(gr INTEGER) 
+RETURNS TABLE (group_name VARCHAR,day_ VARCHAR,time_ VARCHAR,subject_name VARCHAR)
+AS $$
+BEGIN
+RETURN QUERY SELECT group2_0.group_name , schedule2_0.day_, schedule2_0.time_ ,subject2_0.subject_name from schedule2_0 
+inner join subject2_0
+on schedule2_0.fk_subject_id = subject2_0.subject_id
+inner join group2_0 on
+group2_0.group_id = schedule2_0.fk_group_id
+where schedule2_0.day_week = (Select extract (DOW FROM NOW() + interval '1 DAY')) and schedule2_0.fk_group_id = gr
+group by group2_0.group_name, schedule2_0.day_, schedule2_0.time_ ,subject2_0.subject_name
+order by time_;
+IF NOT FOUND THEN
+RAISE EXCEPTION 'Завтра выходной!';
+END IF;
+RETURN;
+END;
+$$ LANGUAGE plpgsql;
+
+
+SELECT * FROM check_schedule(1)				 
+
+
+Запрос на завтрашнее расписание**
+
+Select * from schedule2_0 where 
+day_week = (Select extract (DOW FROM NOW() + interval '1 DAY'))
+
+3.      
+
+--Создать триггер, запрещающий создавать группы с количеством детей, большим 20.
+CREATE or REPLACE FUNCTION check_group_amount() returns trigger 
+AS $$
+Declare 
+kidscount smallint;
+BEGIN
+select count(child_id) from child2_0 
+into kidscount 
+where new.fk_group_id = fk_group_id;
+if kidscount >= 20 
+then
+raise exception 'Группа может состоять максимум из 20-ти детей!';
+return null;
+elsif 
+kidscount <= 20
+then
+return new;
+end if;
+
+END;
+
+$$ LANGUAGE plpgsql;
+
+
+
+CREATE TRIGGER check_group_amount_trigger
+BEFORE UPDATE or insert ON child2_0
+FOR EACH ROW 
+EXECUTE PROCEDURE check_group_amount();
+
+
+
+drop FUNCTION check_group_amount() cascade;
+
+
+
+
+INSERT INTO child2_0(child_lname,child_fname, child_fathername,receipt_date,child_birth_date,child_adress,medical_comment,release_date,gender,fk_group_id)  
+ VALUES
+ ('Данилен', 'Степан' ,'Артёмович','2020/09/05','2018/03/17','Генуеская 23','Полностью здоров','2024/06/05','Male',3)
+ 
+ 
+ 
+
+
+
+Вывод даты дня в качестве слова
+
+Select to_char(NOW(), 'day')
+
+
+
+
+
+CREATE or REPLACE FUNCTION check_family() returns trigger 
+AS $$
+DECLARE kid_id_check INTEGER;
+DECLARE parent_count INTEGER;
+BEGIN
+Select child_id from parent2_0 
+inner join family2_0 on family2_0.fk_parent_id = parent2_0.parent_id
+inner join child2_0 on child2_0.child_id = family2_0.fk_child_id
+where old.parent_id = parent_id
+into kid_id_check;
+SELECT count(parent_id) from parent2_0 
+inner join family2_0 on family2_0.fk_parent_id = parent2_0.parent_id
+inner join child2_0 on child2_0.child_id = family2_0.fk_child_id
+where child_id = kid_id_check
+into parent_count;
+if
+parent_count = 1
+then
+update parent2_0
+set parent_id = old.parent_id, phone_num = '+38(096)4236456',birth_date='1989/06/04',lname_='Колаковский',fname_='Артем', fathername = 'Альбертович',email = 'artem.sc@gmail.com',parent_type = 'SocialWorker',password_ ='st1989012' ,adress = 'Генуеская,5',work_place = 'Софиевская,4/Социальный работник'
+where parent_id = old.parent_id;
+return new;	
+else
+return old;
+end if;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER check_family_trigger
+BEFORE UPDATE OR DELETE ON parent2_0
+FOR EACH ROW 
+WHEN (pg_trigger_depth() < 1)
+EXECUTE PROCEDURE check_family();
+
+
+DROP FUNCTION  check_family() cascade
+
+
+delete from parent2_0 where parent_id = 2
+
+
+CHILD
+
+{
+    "child_lname":"Shchupak",
+    "child_fname":"Tymur",
+    "child_fathername":"Oleksandrovich",
+    "child_birth_date":"2018/05/01",
+    "receipt_date":"2020/09/05",
+    "release_date":"2024/06/05",
+    "child_adress":"Fuck",
+    "medical_comment":"Здоров как бык",
+    "gender":"Хлопчик",
+    "group_name":"Солнышко"
+}
+
+
+PARENT 
+
+
+{
+    "lname_":"Свердловський",
+    "fname_":"Степан",
+    "fathername_":"Олексійович",
+    "birth_date":"1983-01-22",
+    "parent_type":"Батько",
+    "adress":"Торгова,45",
+    "work_place":"Будапештова,88",
+    "phone_num":"+38(096)8511926",
+    "email":"sverd.stepan@gmail.com",
+    "password_":"t12345678"
+}
+
+EMPLOYEE 
+
+{
+    "lname_":"Валіцький",
+    "fname_":"Денис",
+    "fathername_":"Анатолійович",
+    "position_":"Викладач",
+    "email":"timoxa.sch@gmail.com",
+    "birth_date":"1997-05-31",
+    "status":"1",
+    "contract_expiration":"2024-05-31",
+    "password_":"t12345678",
+    "adress":"Кінна,4",
+    "phone_num":"+38(096)8264926",
+"hiring_date":"2021-05-31"
+}
+
+
+
+Create or replace View AuthInfo as
+select employee_id,email, '1' "Role",password_ from employee2_0 where position_ = 'Адміністратор' and status = 1
+union
+select employee_id,email, '2' "Role",password_ from employee2_0 where position_ = 'Викладач' and status = 1
+union
+select parent_id,email ,'3' "Role",password_ from parent2_0
